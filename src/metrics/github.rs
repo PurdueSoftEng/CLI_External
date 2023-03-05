@@ -223,6 +223,35 @@ impl Metrics for Github {
         debug!("license_score: {:.2}", result);
         result
     }
+
+    fn pinning_practice(&self) -> f64 {
+        info!("calculating pinning_practice_score");
+
+            use reqwest::blocking::Client;
+
+            let url = format!("https://api.github.com/repos/{}/{}/contents/package.json", self.owner, self.repo);
+            let client = Client::new();
+            let response = client.get(&url).send().unwrap();
+            let package_json_contents = response.text().unwrap();
+
+            use serde_json::Value;
+            let json: Value = serde_json::from_str(&package_json_contents).unwrap();
+            let dependencies = json["dependencies"].as_object().unwrap();
+            
+            let num_dependencies = dependencies.len() as f64;
+
+            let zero: f64 = 0.0;
+            let one: f64 = 1.0;
+            let result: f64;
+            if num_dependencies == zero {
+                result = one;
+            } else {
+                result = one / num_dependencies; 
+            }
+
+        debug!("pinning_practice_score: {:.2}", result);
+        result
+    }
 }
 
 #[cfg(test)] // needs $GITHUB_TOKEN
@@ -367,5 +396,18 @@ mod tests {
     fn compatibility_apache() {
         let g = Github::with_url("https://github.com/haskell/haskell-language-server").unwrap();
         assert!(g.compatibility() == 0.0);
+    }
+
+    // testing pinning practice
+    #[test]
+    fn pinning_one_half() {
+        let g = Github::with_url("https://github.com/nodeca/js-yaml").unwrap();
+        assert!(g.responsiveness() == 0.5);
+    }
+
+    #[test]
+    fn pinning_zero() {
+        let g = Github::with_url("https://github.com/brix/crypto-js").unwrap();
+        assert!(g.responsiveness() == 1.0);
     }
 }

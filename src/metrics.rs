@@ -22,6 +22,9 @@ pub trait Metrics {
     // whether module is compatible with LGPLv2.1
     fn compatibility(&self) -> f64;
 
+    // New pinning_practice metric for part 2
+    fn pinning_practice(&self) -> f64;
+
     // formulas for calculating metrics
     fn calc_ramp_up_time(lines: u32) -> f64
     where
@@ -88,6 +91,9 @@ mod tests {
             0.0
         }
         fn compatibility(&self) -> f64 {
+            0.0
+        }
+        fn pinning_practice(&self) -> f64 {
             0.0
         }
     }

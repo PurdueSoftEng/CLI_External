@@ -6,3 +6,4 @@
 {"metric":"BUS_FACTOR_SCORE", "api":"graphql", "filepath":"src/metrics/github.rs", "line":181}
 {"metric":"RESPONSIVE_MAINTAINER_SCORE", "api":"graphql", "filepath":"src/metrics/github.rs", "line":199}
 {"metric":"LICENSE_SCORE", "api":"rest", "filepath":"src/metrics/github.rs", "line":214}
+{"metric":"PINNING_PRACTICE_SCORE", "api":"rest", "filepath":"src/metrics/github.rs", "line":227}
