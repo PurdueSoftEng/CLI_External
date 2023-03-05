@@ -134,7 +134,8 @@ fn calcscore(f: &String) -> Result<(), String> {
                 + correctness * 0.1
                 + bus_factor * 0.1
                 + responsiveness * 0.25
-                + compatibility * 0.5;
+                + compatibility * 0.5
+                + pinning_practice * 0.1;
             net_score.insert("URL", line);
             net_score.insert("NET_SCORE", score.to_string());
             net_score.insert("RAMP_UP_SCORE", ramp_up.to_string());
@@ -208,8 +209,11 @@ fn calcscore(f: &String) -> Result<(), String> {
             .unwrap();
         handle
             .write_fmt(format_args!(
-                "\"PINNING_PRACTICE_SCORE\":{}}}\n",
-                dict.get("PINNING_PRACTICE_SCORE").unwrap().parse::<f64>().unwrap()
+                "\"PINNING_PRACTICE_SCORE\":{:.2}, ",
+                dict.get("PINNING_PRACTICE_SCORE")
+                    .unwrap()
+                    .parse::<f64>()
+                    .unwrap()
             ))
             .unwrap();
         handle
