@@ -3,7 +3,11 @@ use chrono::offset::Utc;
 use log::{debug, info};
 use reqwest::header;
 use statrs::distribution::{ContinuousCDF, Normal};
+use core::num::dec2flt::number;
 use std::io::BufRead;
+extern crate reqwest;
+extern crate serde_json;
+use reqwest::blocking::Client; 
 
 #[derive(Debug)]
 pub struct Github {
@@ -225,33 +229,21 @@ impl Metrics for Github {
     }
 
     fn pinning_practice(&self) -> f64 {
+        // use github api to get dependency count
         info!("calculating pinning_practice_score");
 
-        //     use reqwest::blocking::Client;
+        let response_json = self.rest_json("contents/package.json").unwrap();
+        let dependencies = response_json["dependencies"].as_object().unwrap();
+        
+        let pinning_practice_score = 1.0; 
+        let number_of_dependencies = dependencies.len();
+        if (number_of_dependencies as f64) != 0.0 {
+            let pinning_practice_score = 1.0 / (number_of_dependencies as f64);
+        }
 
-        //     let url = format!("https://api.github.com/repos/{}/{}/contents/package.json", self.owner, self.repo);
-        //     let client = Client::new();
-        //     let response = client.get(&url).send().unwrap();
-        //     let package_json_contents = response.text().unwrap();
+        pinning_practice_score
 
-        //     use serde_json::Value;
-        //     let json: Value = serde_json::from_str(&package_json_contents).unwrap();
-        //     let dependencies = json["dependencies"].as_object().unwrap();
-            
-        //     let num_dependencies = dependencies.len() as f64;
-
-        //     let zero: f64 = 0.0;
-        //     let one: f64 = 1.0;
-        //     let result: f64;
-        //     if num_dependencies == zero {
-        //         result = one;
-        //     } else {
-        //         result = one / num_dependencies; 
-        //     }
-
-        // debug!("pinning_practice_score: {:.2}", result);
-        //result
-        0.3
+        //0.3
     }
 }
 
