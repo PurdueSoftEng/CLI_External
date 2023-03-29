@@ -1,13 +1,20 @@
 use crate::metrics::Metrics;
+use base64::Engine;
+// use base64::{Engine, engine::{general_purpose, self}};
 use chrono::offset::Utc;
+use git2::Status;
+use hyper::body;
 use log::{debug, info};
 use reqwest::header;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use statrs::distribution::{ContinuousCDF, Normal};
-use core::num::dec2flt::number;
+//use core::num::flt2dec::decode;
+//use core::num::dec2flt::number;
+use pyo3::{prelude::*, types::PyMapping};
+use pyo3::types::IntoPyDict;
 use std::io::BufRead;
-extern crate reqwest;
-extern crate serde_json;
-use reqwest::blocking::Client; 
+use pyo3::types::PyDict;
 
 #[derive(Debug)]
 pub struct Github {
@@ -18,6 +25,39 @@ pub struct Github {
 
     // API-related
     client: reqwest::blocking::Client,
+}
+
+#[derive(Debug, Deserialize)]
+struct GithubPinningPractice {
+    url: String,
+    name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct PinningPracticePackageJSON {
+    name: String,
+    path: String,
+    sha: String,
+    size: u64,
+    url: String,
+    html_url: String,
+    git_url: String,
+    download_url: String,
+    #[serde(rename = "type")]
+    file_type: String,
+    content: Option<String>,
+    encoding: String, 
+    _links: Links,
+}
+
+#[derive(Debug, Deserialize)]
+struct Links {
+    #[serde(rename = "self")]
+    self_link: String,
+    #[serde(rename = "html")]
+    html_link: String,
+    #[serde(rename = "git")]
+    git_link: String,
 }
 
 impl Github {
@@ -232,18 +272,55 @@ impl Metrics for Github {
         // use github api to get dependency count
         info!("calculating pinning_practice_score");
 
-        let response_json = self.rest_json("contents/package.json").unwrap();
-        let dependencies = response_json["dependencies"].as_object().unwrap();
-        
-        let pinning_practice_score = 1.0; 
-        let number_of_dependencies = dependencies.len();
-        if (number_of_dependencies as f64) != 0.0 {
-            let pinning_practice_score = 1.0 / (number_of_dependencies as f64);
+        let response = self.rest_json("contents").unwrap(); 
+        let response_str = serde_json::to_string(&response).unwrap();
+        let contents: Vec<GithubPinningPractice> = serde_json::from_str(&response_str).unwrap();
+
+        let mut package_url = String::new();
+        for content in contents {
+            if content.name == "package.json" {
+                package_url = content.url; 
+            }
         }
 
-        pinning_practice_score
+        let client = reqwest::blocking::Client::builder()
+            .user_agent("ECE461Project")
+            .build();
+        let response = client.unwrap().get(package_url).send();
 
-        //0.3
+        let mut num_dependencies = 0.0;
+        if let Some(response) = response.ok() {
+            let body_string = response.text().unwrap();
+            let body_json_string: PinningPracticePackageJSON = serde_json::from_str(&body_string).unwrap();
+            let content_string = body_json_string.content.unwrap();
+            let trimmed_content_string = content_string.trim_matches('\n').to_string();
+            
+            pyo3::prepare_freethreaded_python();
+            Python::with_gil(|py| {
+                let base64_module = py.import("base64").unwrap();
+                let base64_decode_fn = base64_module.getattr("b64decode").unwrap();
+
+                let decoded_content_bytes = base64_decode_fn.call1((trimmed_content_string,)).unwrap().extract::<Vec<u8>>().unwrap();
+                let decoded_content_string = String::from_utf8(decoded_content_bytes).unwrap();
+
+                let mut decoded_content_dict = PyDict::new(py);
+                let eval_result = py.eval(&decoded_content_string, None, None);
+                if let Ok(eval) = eval_result {
+                    if let Ok(eval_dict) = eval.downcast::<PyDict>().unwrap().extract() {
+                        decoded_content_dict.update(eval_dict);
+
+                        let key_value = decoded_content_dict.get_item("devDependencies").unwrap();
+                        num_dependencies = key_value.len().unwrap() as f64;
+                    }
+                }
+            }); 
+        } else {
+            num_dependencies = 0.0;
+        }
+
+        let pinning_practice_score = if num_dependencies == 0.0 {1.0} else {1.0 / num_dependencies}; 
+
+        pinning_practice_score
     }
 }
 
