@@ -12,7 +12,6 @@ use statrs::distribution::{ContinuousCDF, Normal};
 //use core::num::flt2dec::decode;
 //use core::num::dec2flt::number;
 use pyo3::{prelude::*, types::PyMapping};
-use pyo3::types::IntoPyDict;
 use std::io::BufRead;
 use pyo3::types::PyDict;
 
@@ -280,8 +279,9 @@ impl Metrics for Github {
         for content in contents {
             if content.name == "package.json" {
                 package_url = content.url; 
-            }
+            } 
         }
+        // ADD IN BAD REQUEST HERE
 
         let client = reqwest::blocking::Client::builder()
             .user_agent("ECE461Project")
@@ -302,17 +302,31 @@ impl Metrics for Github {
 
                 let decoded_content_bytes = base64_decode_fn.call1((trimmed_content_string,)).unwrap().extract::<Vec<u8>>().unwrap();
                 let decoded_content_string = String::from_utf8(decoded_content_bytes).unwrap();
-
-                let mut decoded_content_dict = PyDict::new(py);
-                let eval_result = py.eval(&decoded_content_string, None, None);
-                if let Ok(eval) = eval_result {
-                    if let Ok(eval_dict) = eval.downcast::<PyDict>().unwrap().extract() {
-                        decoded_content_dict.update(eval_dict);
-
-                        let key_value = decoded_content_dict.get_item("devDependencies").unwrap();
-                        num_dependencies = key_value.len().unwrap() as f64;
+                
+                // error fixing -- edit string to devDependencies
+                let mut edited_decoded_content_string = String::new();
+                edited_decoded_content_string.push('{');
+                let mut word_check = 0;
+                for word in decoded_content_string.split_whitespace() {
+                    if word == "\"devDependencies\":" {
+                        word_check = 1;
+                    }
+                    if word_check == 1 {
+                        for c in word.chars() {
+                            edited_decoded_content_string.push(c);
+                        }
+                        edited_decoded_content_string.push(' ');
                     }
                 }
+
+                //let mut decoded_content_dict = PyDict::new(py);
+                //let dictionary_obj = py.eval(&edited_decoded_content_string, None, None).unwrap();
+                //let dictionary_py = dictionary_obj.extract::<&PyDict>().unwrap();
+
+                let dict_py_json: serde_json::Value = serde_json::from_str(&edited_decoded_content_string).unwrap();
+                let dev_dependencies = dict_py_json["devDependencies"].as_object().unwrap();
+                let dev_dependencies_vals = dev_dependencies.values().cloned().collect::<Vec<_>>();
+                num_dependencies = dev_dependencies_vals.len() as f64;
             }); 
         } else {
             num_dependencies = 0.0;
