@@ -20,11 +20,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: space-wizards/submodule-dependency@v0.1.5
-    - uses: snickerbockers/submodules-init@v4
     - name: Build
-      run: bash scripts/install.sh
-    - name: Run
-      run: bash scripts/rank.sh tests/test.txt
+      run: cargo build --verbose
     - name: Tests
-      run: bash scripts/test.sh
+      run: cargo test --verbose
