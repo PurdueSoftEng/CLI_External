@@ -64,6 +64,10 @@ impl Metrics for Npm {
     fn compatibility(&self) -> f64 {
         self.gh.compatibility()
     }
+
+    fn pinning_practice(&self) -> f64 {
+        self.gh.pinning_practice()
+    }
 }
 
 #[cfg(test)]
@@ -89,12 +93,13 @@ mod tests {
     fn test_metrics() {
         let n = Npm::with_url("https://www.npmjs.com/package/js-yaml").unwrap();
         println!(
-            "{} {} {} {} {}",
+            "{} {} {} {} {} {}",
             n.ramp_up_time(),
             n.correctness(),
             n.bus_factor(),
             n.responsiveness(),
-            n.compatibility()
+            n.compatibility(),
+            n.pinning_practice()
         );
     }
 }

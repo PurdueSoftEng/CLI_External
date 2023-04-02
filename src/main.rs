@@ -129,17 +129,20 @@ fn calcscore(f: &String) -> Result<(), String> {
             let bus_factor: f64 = project.bus_factor();
             let responsiveness: f64 = project.responsiveness();
             let compatibility: f64 = project.compatibility();
+            let pinning_practice: f64 = project.pinning_practice();
             let score: f64 = ramp_up * 0.05
                 + correctness * 0.1
                 + bus_factor * 0.1
                 + responsiveness * 0.25
-                + compatibility * 0.5;
+                + compatibility * 0.5
+                + pinning_practice * 0.1;
             net_score.insert("URL", line);
             net_score.insert("NET_SCORE", score.to_string());
             net_score.insert("RAMP_UP_SCORE", ramp_up.to_string());
             net_score.insert("CORRECTNESS_SCORE", correctness.to_string());
             net_score.insert("BUS_FACTOR_SCORE", bus_factor.to_string());
             net_score.insert("RESPONSIVE_MAINTAINER_SCORE", responsiveness.to_string());
+            net_score.insert("PINNING_PRACTICE_SCORE", pinning_practice.to_string());
             net_score.insert("LICENSE_SCORE", compatibility.to_string());
             net_scores.push(net_score);
         } else {
@@ -199,6 +202,15 @@ fn calcscore(f: &String) -> Result<(), String> {
             .write_fmt(format_args!(
                 "\"RESPONSIVE_MAINTAINER_SCORE\":{:.2}, ",
                 dict.get("RESPONSIVE_MAINTAINER_SCORE")
+                    .unwrap()
+                    .parse::<f64>()
+                    .unwrap()
+            ))
+            .unwrap();
+        handle
+            .write_fmt(format_args!(
+                "\"PINNING_PRACTICE_SCORE\":{:.2}, ",
+                dict.get("PINNING_PRACTICE_SCORE")
                     .unwrap()
                     .parse::<f64>()
                     .unwrap()
